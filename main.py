@@ -1,76 +1,70 @@
 # Задание 1
-import requests
- 
-url = "https://jsonplaceholder.typicode.com/users"
-response = requests.get(url)
-print("Статус-код:", response.status_code)
-
-# Задание 2
-data = response.json()
-print("Всего пользователей:", len(data))
- 
-for user in data:
-    print(user["name"], "-", user["email"])
-
-print(data[0]["address"]["city"])
-
-# Задание 3
 import pandas as pd
  
+# Грязные данные: пропуски (None), дубликаты, текст вместо чисел
+data = {
+    "name": ["Анна", "Борис", "Виктор", "Анна", "Дмитрий",
+             "Елена", "Борис", "Жанна", "Захар", "Ирина"],
+    "age": [25, 34, None, 25, 45, 29, 34, None, 150, 31],
+    "city": ["Москва", None, "Казань", "Москва", "Сочи",
+             "Москва", "Казань", "Тверь", "Омск", "Уфа"],
+    "salary": [50000, 60000, 55000, 50000, 70000,
+               None, 60000, 52000, 90000, 58000],
+    "experience": ["3", "5", "2", "3", "10",
+                   "7", "5", None, "20", "4"],
+}
 df = pd.DataFrame(data)
-print(df.head())
+print("=== Задание 1: грязный датасет ===")
+print(df)
 
-df = df[["id", "name", "username", "email", "phone", "website"]]
-print(df.head())
+# Задание 2
+print("=== Задание 2: сколько пропусков в каждом столбце ===")
+print(df.isnull().sum())
+
+# Задание 3
+print("=== Задание 3: удаляем строки с пропуском имени или возраста ===")
+df = df.dropna(subset=["name", "age"])
+print(f"Осталось строк: {len(df)}")
+print(df)
 
 # Задание 4
-import os
-import json
- 
-os.makedirs("data", exist_ok=True)
- 
-df.to_csv("data/users.csv", index=False)
- 
-with open("data/users.json", "w", encoding="utf-8") as f:
-    json.dump(data, f, ensure_ascii=False, indent=2)
- 
-print("Файлы сохранены:", os.listdir("data"))
+print("=== Задание 4: заполняем пропуски зарплаты средним ===")
+mean_salary = df["salary"].mean()
+print(f"Средняя зарплата: {mean_salary}")
+df["salary"] = df["salary"].fillna(mean_salary)
+print(df)
 
 # Задание 5
-dirty = [dict(u) for u in data]        # копии словарей
- 
-dirty[0]["email"] = None               # пропуск
-dirty.append(dirty[1])                 # дубликат
- 
-df_dirty = pd.DataFrame(dirty)
-df_dirty = df_dirty[["id", "name", "email"]]
- 
-print("Пропуски по колонкам:")
-print(df_dirty.isnull().sum())
-print("Найдено дубликатов:", df_dirty.duplicated().sum())
+print("=== Задание 5: удаляем дубликаты ===")
+print(f"Дубликатов найдено: {df.duplicated().sum()}")
+df = df.drop_duplicates()
+print(f"Осталось строк: {len(df)}")
+print(df)
 
 # Задание 6
-from datetime import datetime
- 
-def fetch_and_backup(url, folder="data"):
-    """Делает GET-запрос и сохраняет ответ с датой в имени файла."""
-    response = requests.get(url)
-    if response.status_code != 200:
-        print("Запрос не удался, код:", response.status_code)
-        return None
- 
-    data = response.json()
-    stamp = datetime.now().strftime("%Y-%m-%d")
-    os.makedirs(folder, exist_ok=True)
-    path = os.path.join(folder, f"users_{stamp}.json")
- 
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
- 
-    print("Бэкап сохранён:", path)
-    return pd.DataFrame(data)
- 
-df = fetch_and_backup(url)
+print("=== Задание 6: выбросы — возраст больше 100 ===")
+mask = df["age"] > 100
+print("Выбросы:")
+print(df[mask])
+median_age = df.loc[~mask, "age"].median()
+print(f"Медиана без выбросов: {median_age}")
+df.loc[mask, "age"] = median_age
+print(df)
+
+# Задание 7
+print("=== Задание 7: приводим столбец experience к числу ===")
+df["experience"] = pd.to_numeric(df["experience"], errors="coerce")
+df["experience"] = df["experience"].fillna(df["experience"].mean())
+df["experience"] = df["experience"].astype(int)
+print(df.dtypes)
+print(df)
+
+# Задание 8
+print("=== Задание 8: сохраняем очищенные данные ===")
+df.to_csv("clean_data.csv", index=False)
+print("Файл clean_data.csv сохранён.")
+print(df.info())
+
 
 
 
